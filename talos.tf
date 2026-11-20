@@ -80,7 +80,7 @@ data "talos_machine_configuration" "control_plane" {
   kubernetes_version = var.kubernetes_version
   machine_type       = "controlplane"
   machine_secrets    = talos_machine_secrets.this.machine_secrets
-  config_patches     = concat([yamlencode(local.controlplane_yaml[each.value.name])], var.talos_control_plane_extra_config_patches, [local.tailscale_config_patch])
+  config_patches     = compact(concat([yamlencode(local.controlplane_yaml[each.value.name])], var.talos_control_plane_extra_config_patches, [local.tailscale_config_patch]))
   docs               = false
   examples           = false
 }
@@ -93,7 +93,7 @@ data "talos_machine_configuration" "worker" {
   kubernetes_version = var.kubernetes_version
   machine_type       = "worker"
   machine_secrets    = talos_machine_secrets.this.machine_secrets
-  config_patches     = concat([yamlencode(local.worker_yaml[each.value.name])], var.talos_worker_extra_config_patches)
+  config_patches     = compact(concat([yamlencode(local.worker_yaml[each.value.name])], var.talos_worker_extra_config_patches))
   docs               = false
   examples           = false
 }
@@ -108,7 +108,7 @@ data "talos_machine_configuration" "dummy_control_plane" {
   kubernetes_version = var.kubernetes_version
   machine_type       = "controlplane"
   machine_secrets    = talos_machine_secrets.this.machine_secrets
-  config_patches     = concat([yamlencode(local.controlplane_yaml["dummy-cp-0"])], var.talos_control_plane_extra_config_patches) # Use dummy yaml + extra patches
+  config_patches     = compact(concat([yamlencode(local.controlplane_yaml["dummy-cp-0"])], var.talos_control_plane_extra_config_patches)) # Use dummy yaml + extra patches
   docs               = false
   examples           = false
 }

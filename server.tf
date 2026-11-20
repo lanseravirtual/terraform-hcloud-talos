@@ -97,7 +97,7 @@ resource "hcloud_ssh_key" "this" {
 
 resource "hcloud_server" "control_planes" {
   for_each           = { for control_plane in local.control_planes : control_plane.name => control_plane }
-  datacenter         = data.hcloud_datacenter.this.name
+  datacenter         = local.datacenter_name
   name               = each.value.name
   image              = local.control_plane_image_id
   server_type        = var.control_plane_server_type
@@ -142,13 +142,13 @@ resource "hcloud_server" "control_planes" {
 
 resource "hcloud_server" "workers" {
   for_each           = { for worker in local.legacy_workers : worker.name => worker }
-  datacenter         = data.hcloud_datacenter.this.name
+  datacenter         = local.datacenter_name
   name               = each.value.name
   image              = each.value.image_id
   server_type        = each.value.server_type
   user_data          = data.talos_machine_configuration.worker[each.value.name].machine_configuration
   ssh_keys           = [hcloud_ssh_key.this.id]
-  placement_group_id = hcloud_placement_group.worker.id
+  placement_group_id = each.value.index < 10 ? hcloud_placement_group.worker.id : hcloud_placement_group.worker_extra[floor(each.value.index / 10) - 1].id
 
   labels = merge({
     "cluster"     = var.cluster_name,
@@ -189,14 +189,17 @@ resource "hcloud_server" "workers" {
 
 
 resource "hcloud_server" "workers_new" {
-  for_each           = { for worker in local.new_workers : worker.name => worker }
-  datacenter         = data.hcloud_datacenter.this.name
-  name               = each.value.name
-  image              = each.value.image_id
-  server_type        = each.value.server_type
+  for_each    = { for worker in local.new_workers : worker.name => worker }
+  location    = data.hcloud_location.this.name
+  name        = each.value.name
+  image       = each.value.image_id
+  server_type = each.value.server_type
+  # Resize CPU/RAM only and keep the original disk, so the server can be
+  # downsized again later (Hetzner cannot shrink a grown disk).
+  keep_disk          = true
   user_data          = data.talos_machine_configuration.worker[each.value.name].machine_configuration
   ssh_keys           = [hcloud_ssh_key.this.id]
-  placement_group_id = hcloud_placement_group.worker.id
+  placement_group_id = each.value.index < 10 ? hcloud_placement_group.worker.id : hcloud_placement_group.worker_extra[floor(each.value.index / 10) - 1].id
 
   labels = merge({
     "cluster"     = var.cluster_name,
